@@ -1,0 +1,420 @@
+{
+ "note": "tools/make_levels.py로 생성. elo는 30급을 0으로 둔 AI끼리의 상대값",
+ "step_elo": 97,
+ "levels": [
+  {
+   "name": "30급",
+   "group": "입문",
+   "play": {
+    "kind": "soft",
+    "depth": 1.0,
+    "T": 800.0,
+    "mpv": 32
+   },
+   "elo": 0
+  },
+  {
+   "name": "29급",
+   "group": "입문",
+   "play": {
+    "kind": "soft",
+    "depth": 1.0,
+    "T": 694.4,
+    "mpv": 32
+   },
+   "elo": 97
+  },
+  {
+   "name": "28급",
+   "group": "입문",
+   "play": {
+    "kind": "soft",
+    "depth": 1.0,
+    "T": 602.7,
+    "mpv": 32
+   },
+   "elo": 194
+  },
+  {
+   "name": "27급",
+   "group": "입문",
+   "play": {
+    "kind": "soft",
+    "depth": 1.0,
+    "T": 489.4,
+    "mpv": 32
+   },
+   "elo": 290
+  },
+  {
+   "name": "26급",
+   "group": "입문",
+   "play": {
+    "kind": "soft",
+    "depth": 1.0,
+    "T": 393.8,
+    "mpv": 32
+   },
+   "elo": 387
+  },
+  {
+   "name": "25급",
+   "group": "입문",
+   "play": {
+    "kind": "soft",
+    "depth": 1.0,
+    "T": 332.7,
+    "mpv": 32
+   },
+   "elo": 484
+  },
+  {
+   "name": "24급",
+   "group": "입문",
+   "play": {
+    "kind": "soft",
+    "depth": 1.0,
+    "T": 259.0,
+    "mpv": 32
+   },
+   "elo": 581
+  },
+  {
+   "name": "23급",
+   "group": "입문",
+   "play": {
+    "kind": "soft",
+    "depth": 1.0,
+    "T": 226.2,
+    "mpv": 32
+   },
+   "elo": 678
+  },
+  {
+   "name": "22급",
+   "group": "입문",
+   "play": {
+    "kind": "soft",
+    "depth": 1.0,
+    "T": 199.3,
+    "mpv": 32
+   },
+   "elo": 774
+  },
+  {
+   "name": "21급",
+   "group": "입문",
+   "play": {
+    "kind": "soft",
+    "depth": 1.0,
+    "T": 181.2,
+    "mpv": 32
+   },
+   "elo": 871
+  },
+  {
+   "name": "20급",
+   "group": "초급",
+   "play": {
+    "kind": "soft",
+    "depth": 1.0,
+    "T": 165.0,
+    "mpv": 32
+   },
+   "elo": 968
+  },
+  {
+   "name": "19급",
+   "group": "초급",
+   "play": {
+    "kind": "soft",
+    "depth": 1.0,
+    "T": 149.2,
+    "mpv": 32
+   },
+   "elo": 1065
+  },
+  {
+   "name": "18급",
+   "group": "초급",
+   "play": {
+    "kind": "soft",
+    "depth": 1.0,
+    "T": 135.7,
+    "mpv": 32
+   },
+   "elo": 1162
+  },
+  {
+   "name": "17급",
+   "group": "초급",
+   "play": {
+    "kind": "soft",
+    "depth": 1.01,
+    "T": 120.9,
+    "mpv": 32
+   },
+   "elo": 1258
+  },
+  {
+   "name": "16급",
+   "group": "초급",
+   "play": {
+    "kind": "soft",
+    "depth": 1.1,
+    "T": 110.0,
+    "mpv": 32
+   },
+   "elo": 1355
+  },
+  {
+   "name": "15급",
+   "group": "초급",
+   "play": {
+    "kind": "soft",
+    "depth": 1.6,
+    "T": 110.0,
+    "mpv": 32
+   },
+   "elo": 1452
+  },
+  {
+   "name": "14급",
+   "group": "초급",
+   "play": {
+    "kind": "soft",
+    "depth": 2.0,
+    "T": 89.2,
+    "mpv": 32
+   },
+   "elo": 1549
+  },
+  {
+   "name": "13급",
+   "group": "초급",
+   "play": {
+    "kind": "soft",
+    "depth": 2.52,
+    "T": 65.0,
+    "mpv": 32
+   },
+   "elo": 1645
+  },
+  {
+   "name": "12급",
+   "group": "초급",
+   "play": {
+    "kind": "soft",
+    "depth": 2.93,
+    "T": 65.0,
+    "mpv": 32
+   },
+   "elo": 1742
+  },
+  {
+   "name": "11급",
+   "group": "초급",
+   "play": {
+    "kind": "soft",
+    "depth": 2.98,
+    "T": 57.7,
+    "mpv": 32
+   },
+   "elo": 1839
+  },
+  {
+   "name": "10급",
+   "group": "중급",
+   "play": {
+    "kind": "soft",
+    "depth": 3.04,
+    "T": 51.5,
+    "mpv": 16
+   },
+   "elo": 1936
+  },
+  {
+   "name": "9급",
+   "group": "중급",
+   "play": {
+    "kind": "soft",
+    "depth": 3.33,
+    "T": 50.0,
+    "mpv": 16
+   },
+   "elo": 2033
+  },
+  {
+   "name": "8급",
+   "group": "중급",
+   "play": {
+    "kind": "soft",
+    "depth": 3.97,
+    "T": 50.0,
+    "mpv": 16
+   },
+   "elo": 2129
+  },
+  {
+   "name": "7급",
+   "group": "중급",
+   "play": {
+    "kind": "soft",
+    "depth": 4.53,
+    "T": 40.0,
+    "mpv": 16
+   },
+   "elo": 2226
+  },
+  {
+   "name": "6급",
+   "group": "중급",
+   "play": {
+    "kind": "soft",
+    "depth": 4.85,
+    "T": 36.2,
+    "mpv": 16
+   },
+   "elo": 2323
+  },
+  {
+   "name": "5급",
+   "group": "중급",
+   "play": {
+    "kind": "soft",
+    "depth": 5.19,
+    "T": 32.0,
+    "mpv": 16
+   },
+   "elo": 2420
+  },
+  {
+   "name": "4급",
+   "group": "중급",
+   "play": {
+    "kind": "soft",
+    "depth": 5.6,
+    "T": 32.0,
+    "mpv": 16
+   },
+   "elo": 2517
+  },
+  {
+   "name": "3급",
+   "group": "중급",
+   "play": {
+    "kind": "soft",
+    "depth": 5.91,
+    "T": 31.4,
+    "mpv": 16
+   },
+   "elo": 2613
+  },
+  {
+   "name": "2급",
+   "group": "중급",
+   "play": {
+    "kind": "soft",
+    "depth": 6.03,
+    "T": 25.3,
+    "mpv": 10
+   },
+   "elo": 2710
+  },
+  {
+   "name": "1급",
+   "group": "중급",
+   "play": {
+    "kind": "soft",
+    "depth": 6.37,
+    "T": 25.0,
+    "mpv": 10
+   },
+   "elo": 2807
+  },
+  {
+   "name": "초단",
+   "group": "유단자",
+   "play": {
+    "kind": "soft",
+    "depth": 7,
+    "T": 25,
+    "mpv": 10
+   }
+  },
+  {
+   "name": "2단",
+   "group": "유단자",
+   "play": {
+    "kind": "soft",
+    "depth": 7,
+    "T": 20,
+    "mpv": 10
+   }
+  },
+  {
+   "name": "3단",
+   "group": "유단자",
+   "play": {
+    "kind": "soft",
+    "depth": 8,
+    "T": 20,
+    "mpv": 10
+   }
+  },
+  {
+   "name": "4단",
+   "group": "유단자",
+   "play": {
+    "kind": "soft",
+    "depth": 8,
+    "T": 15,
+    "mpv": 10
+   }
+  },
+  {
+   "name": "5단",
+   "group": "유단자",
+   "play": {
+    "kind": "soft",
+    "depth": 10,
+    "T": 15,
+    "mpv": 10
+   }
+  },
+  {
+   "name": "6단",
+   "group": "유단자",
+   "play": {
+    "kind": "soft",
+    "depth": 10,
+    "T": 10,
+    "mpv": 10
+   }
+  },
+  {
+   "name": "7단",
+   "group": "유단자",
+   "play": {
+    "kind": "nodes",
+    "nodes": 12000
+   }
+  },
+  {
+   "name": "8단",
+   "group": "유단자",
+   "play": {
+    "kind": "nodes",
+    "nodes": 30000
+   }
+  },
+  {
+   "name": "9단",
+   "group": "유단자",
+   "play": {
+    "kind": "nodes",
+    "nodes": 50000
+   }
+  }
+ ]
+}

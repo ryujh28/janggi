@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>장기</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="theme-color" content="#1b2a41">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="장기">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<link rel="stylesheet" href="fonts.css">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<main class="table">
+  <section class="board-wrap" aria-label="장기판">
+    <svg id="board" viewBox="0 0 780 800" role="img" aria-label="장기판"></svg>
+  </section>
+  <aside id="panel" class="panel"><p class="quiet">불러오는 중</p></aside>
+</main>
+<script>
+window.startApp = () => {
+  const script = document.createElement("script");
+  script.type = "module";
+  script.src = "core/main.js";
+  document.body.appendChild(script);
+};
+// 서비스 워커가 페이지를 맡아야 엔진이 쓰는 격리 환경이 켜진다. 처음 한 번만 다시 불러온다.
+(async () => {
+  if (!("serviceWorker" in navigator)) return window.startApp();
+  await navigator.serviceWorker.register("sw.js");
+  await navigator.serviceWorker.ready;
+  if (window.crossOriginIsolated) return window.startApp();
+  if (!navigator.serviceWorker.controller) {
+    await new Promise((resolve) => navigator.serviceWorker.addEventListener("controllerchange", resolve, { once: true }));
+  }
+  if (sessionStorage.getItem("reloaded")) return window.startApp();
+  sessionStorage.setItem("reloaded", "1");
+  location.reload();
+})();
+</script>
+<script src="vendor/stockfish.js"></script>
+<script src="sound.js"></script>
+<script src="board.js"></script>
+<script src="study.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
