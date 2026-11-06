@@ -1,6 +1,7 @@
 // 브라우저 안에서 도는 엔진 연결과 급수별 수 선택. 맥 버전 janggi/engine.py와 같은 방식이다.
 const NETWORK = "janggi-9991472750de.nnue";
 const MATE_BASE = 30000;
+const TERM = /^\|\s*(Mobility|King safety|Threats)\s*\|.*\|\s*(-?\d+\.\d+)\s+-?\d+\.\d+\s*\|$/;
 
 export class EngineError extends Error {}
 
@@ -8,6 +9,30 @@ export function mateIn(score) {
   if (Math.abs(score) < MATE_BASE - 10000) return null;
   const n = Math.floor((MATE_BASE - Math.abs(score)) / 100);
   return score > 0 ? n : -n;
+}
+
+// 엔진의 eval 출력에서 말별 가치와 평가 항목을 뽑는다. 장군 상태면 비어 있다.
+export function parseEval(lines) {
+  const terms = {}, pieces = {}, rows = [];
+  let inTable = false;
+  for (const text of lines) {
+    const line = text.trim();
+    const term = TERM.exec(line);
+    if (term) terms[term[1]] = Number(term[2]);
+    if (line.includes("piece values")) inTable = true;
+    else if (inTable && line.startsWith("|")) rows.push(line);
+    else if (inTable && !line.startsWith("+")) inTable = false;
+  }
+  for (let index = 0; index + 1 < rows.length; index += 2) {
+    const names = rows[index].split("|").slice(1, 10);
+    const values = rows[index + 1].split("|").slice(1, 10);
+    names.forEach((name, column) => {
+      if (name.trim() && values[column]?.trim()) {
+        pieces["abcdefghi"[column] + (10 - index / 2)] = Number(values[column]);
+      }
+    });
+  }
+  return { terms, pieces };
 }
 
 export class Engine {
@@ -39,6 +64,7 @@ export class Engine {
     this.options = {};
     this.lines = [];
     this.waiter = null;
+    this.trace = [];  // 마지막 탐색에서 깊이별로 1순위가 어떻게 바뀌었는지
     sf.addMessageListener((line) => {
       if (this.waiter) this.waiter(line);
       else this.lines.push(line);
@@ -135,6 +161,18 @@ export class Engine {
     return { score: line.score, best, pv: line.pv };
   }
 
+  // 수를 읽지 않고 현재 판을 평가한다. 값은 초 기준이다.
+  async staticEval(game) {
+    this.send(`position fen ${game.fen()}`);
+    this.send("eval");
+    const lines = [];
+    for (;;) {
+      const line = await this.next(30000);
+      lines.push(line);
+      if (line.startsWith("Final evaluation")) return parseEval(lines);
+    }
+  }
+
   async topMoves(game, nodes, count) {
     this.set("Skill Level", 20);
     this.set("MultiPV", count);
@@ -148,6 +186,7 @@ export class Engine {
     this.send(`position fen ${game.fen0}${moves}`);
     this.send(go);
     const lines = new Map();
+    this.trace = [];
     for (;;) {
       const line = await this.next();
       if (line.startsWith("bestmove")) return { best: line.split(" ")[1], lines };
@@ -156,10 +195,11 @@ export class Engine {
       const pv = / pv (.+)$/.exec(line);
       if (!score || !pv) continue;
       const k = /\bmultipv (\d+)/.exec(line);
-      lines.set(k ? Number(k[1]) : 1, {
-        score: centipawns(score[1], Number(score[2])),
-        pv: pv[1].trim().split(" "),
-      });
+      const number = k ? Number(k[1]) : 1;
+      const entry = { score: centipawns(score[1], Number(score[2])), pv: pv[1].trim().split(" ") };
+      lines.set(number, entry);
+      const depth = /\bdepth (\d+)/.exec(line);
+      if (number === 1 && depth) this.trace.push({ depth: Number(depth[1]), move: entry.pv[0], score: entry.score });
     }
   }
 }

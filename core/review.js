@@ -1,10 +1,10 @@
 // 끝난 대국을 엔진으로 분석해 복기 자료를 만든다. 맥 버전 janggi/review.py를 옮긴 것이다.
 import { at, josa, lesson, material, pieceName } from "./commentary.js";
 import { mateIn } from "./engine.js";
-import { PROBE_NODES, describe, probe } from "./intent.js";
+import { PROBE_NODES, describe, extend, probe, trapPoint } from "./intent.js";
 import { CHO, Game, PIECE_VALUE, isPass, splitMove } from "./rules.js";
 
-export const REVIEW_VERSION = 4;
+export const REVIEW_VERSION = 5;
 const ANALYSIS_NODES = 10000;  // 휴대폰에 맞춰 맥 버전의 절반으로 읽는다
 const EXTEND_NODES = 4000;
 const MOMENTS = 3;
@@ -105,22 +105,7 @@ function explainPositional(start, fen, bestPv, playedPv, side) {
   return "말 손해는 크지 않지만 형세가 나빠졌습니다.";
 }
 
-async function extendLine(engine, fen, line) {
-  const game = new Game(fen, []);
-  const kept = [];
-  for (const move of line) {
-    if (game.status() !== null || !game.legal().includes(move)) return kept;
-    game.moves.push(move);
-    kept.push(move);
-  }
-  while (kept.length < LINE_PLIES && game.status() === null) {
-    const { best } = await engine.evaluate(game, EXTEND_NODES);
-    if (!game.legal().includes(best)) break;
-    game.moves.push(best);
-    kept.push(best);
-  }
-  return kept;
-}
+const extendLine = (engine, fen, line) => extend(engine, fen, line, LINE_PLIES, EXTEND_NODES);
 
 export async function analyze(game, engine, progress) {
   const { fen0, moves, side } = game;
@@ -161,6 +146,7 @@ export async function analyze(game, engine, progress) {
     const fen = position.fen();
     // 고른 실수는 더 깊게 다시 읽는다. 깊게 봐도 내 수가 최선이면 실수가 아니다.
     const deep = await engine.evaluate(position, PROBE_NODES);
+    const trace = engine.trace.slice();
     const best = deep.best;
     if (best === played) continue;
     const bestPv = await extendLine(engine, fen, deep.pv);
@@ -169,7 +155,9 @@ export async function analyze(game, engine, progress) {
     let [kind, text] = classify(board, played, best, playedPv, deep.score, after.score, fen, bestPv);
     if (kind === "positional") text = explainPositional(board, fen, bestPv, playedPv, side);
     const result = lesson(fen, side, played, best, kind, playedPv.slice(1), bestPv);
-    result.intent = describe(await probe(engine, fen, best, side));
+    result.intent = describe(await probe(engine, fen, best, side, true));
+    const trap = trapPoint(trace, played, board);
+    if (trap) result.why.unshift(trap);
     moments.push({
       ply, number: Math.floor(ply / 2) + 1, label: labelOf(drop), kind, text, played, best,
       before: Math.round(winRate(deep.score) * 100), after: Math.round(winRate(after.score) * 100),
@@ -178,10 +166,46 @@ export async function analyze(game, engine, progress) {
   }
   moments.sort((a, b) => a.ply - b.ply);
   return {
-    version: REVIEW_VERSION, side,
+    version: REVIEW_VERSION, side, fen0, moves,
     graph: points.map((p) => Math.round(winRate(p.score) * 100)),
     frames, moments,
   };
+}
+
+// 대국에서 실제로 둔 수 하나의 의도를 설명한다. 상대 수도 된다.
+export async function explain(engine, fen0, moves, ply, viewer) {
+  const position = new Game(fen0, moves.slice(0, ply));
+  return describe(await probe(engine, position.fen(), moves[ply], position.turn), viewer);
+}
+
+// 판에서 직접 둬 본 수가 왜 좋고 나쁜지 설명한다.
+export async function ask(engine, fen, move, viewer) {
+  const position = new Game(fen);
+  const { score, best, pv } = await engine.evaluate(position, PROBE_NODES);
+  const trace = engine.trace.slice();
+  const next = new Game(fen, [move]);
+  const status = next.status();
+  if (status) {
+    const won = status.winner === viewer;
+    return { verdict: won ? "best" : "bad", best, text: "이 수로 대국이 끝납니다.",
+      before: Math.round(winRate(score) * 100), after: won ? 100 : 0 };
+  }
+  const reply = await engine.evaluate(next, PROBE_NODES);
+  const after = -reply.score;
+  const verdict = move === best ? "best" : score - after <= GOOD_ENOUGH ? "good" : "bad";
+  const bestPv = await extendLine(engine, fen, pv);
+  const playedPv = await extendLine(engine, fen, [move, ...reply.pv]);
+  const board = position.board();
+  let [kind, text] = classify(board, move, best, playedPv, score, after, fen, bestPv);
+  if (verdict === "best") text = "엔진이 고른 최선수입니다.";
+  else if (verdict === "good") text = "좋은 수입니다. 엔진의 최선수와 큰 차이가 없습니다.";
+  else if (kind === "positional") text = explainPositional(board, fen, bestPv, playedPv, viewer);
+  const result = lesson(fen, viewer, move, best, kind, playedPv.slice(1), bestPv);
+  result.intent = describe(await probe(engine, fen, best, viewer, true));
+  const trap = trapPoint(trace, move, board);
+  if (trap && verdict === "bad") result.why.unshift(trap);
+  return { verdict, best, text, kind, before: Math.round(winRate(score) * 100),
+    after: Math.round(winRate(after) * 100), lesson: result };
 }
 
 export async function judge(engine, fen, move, side) {

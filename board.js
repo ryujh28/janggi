@@ -110,6 +110,7 @@ class Board {
     this.checkSide = view.check ? view.turn : null;
     this.threats = view.threats || [];
     this.arrows = view.arrows || [];
+    this.badges = view.badges || [];
     this.selected = null;
     this.drawPieces();
     this.drawMarks();
@@ -152,6 +153,7 @@ class Board {
       el("polygon", { class: "mark-threat", points: octagon(s), transform: `translate(${p.x} ${p.y})` }, this.marks);
     }
     for (const a of this.arrows) this.drawArrow(a);
+    for (const b of this.badges) this.drawBadge(b);
     for (const n of Object.values(this.nodes)) n.classList.remove("selected");
     if (!this.selected) return;
     this.nodes[this.selected]?.classList.add("selected");
@@ -178,6 +180,14 @@ class Board {
     el("polygon", {
       points: `${q.x - ux * 2},${q.y - uy * 2} ${end.x + nx * size},${end.y + ny * size} ${end.x - nx * size},${end.y - ny * size}`,
     }, g);
+  }
+
+  // 말 오른쪽 위에 붙는 작은 숫자표
+  drawBadge(b) {
+    const { c, r } = this.cell(b.square), p = this.point(c, r);
+    const g = el("g", { class: `badge ${b.good ? "good" : "bad"}`, transform: `translate(${p.x + 22} ${p.y - 26})` }, this.marks);
+    el("rect", { x: -25, y: -13, width: 50, height: 26, rx: 6 }, g);
+    el("text", { y: 1 }, g).textContent = b.text;
   }
 
   animate() {

@@ -2,7 +2,7 @@
 
 나에게 맞는 AI와 두면서 실력을 키우는 장기입니다. 휴대폰 브라우저에서 열어 홈 화면에 추가하면 앱처럼 쓸 수 있습니다. AI는 기기 안에서 돌아가므로 서버가 필요 없고, 한 번 연 뒤에는 오프라인으로도 둘 수 있습니다.
 
-맥 버전(`../Janggi`)과 규칙, 급수, 외통 문제, 복기 해설이 같습니다. 전적은 기기마다 따로 저장됩니다.
+맥 버전(`../Janggi`)과 규칙, 급수, 외통 문제, 필승수 공부, 복기 해설이 같습니다. 전적은 기기마다 따로 저장됩니다.
 
 ## 올리기
 
@@ -35,7 +35,7 @@ git push -u origin main
 | `index.html`, `style.css`, `board.js`, `sound.js`, `app.js`, `study.js` | 화면 |
 | `core/rules.js` | 규칙 판정 연결 |
 | `core/engine.js` | 엔진 연결, 급수별 수 선택 |
-| `core/review.js`, `core/commentary.js`, `core/intent.js` | 복기 분석, 해설, 수의 의도 |
+| `core/review.js`, `core/commentary.js`, `core/intent.js` | 복기 분석, 해설, 수의 의도(가정 실험, 수읽기 깊이, 응수 갈래, 말 가치, 전술 판별) |
 | `core/store.js` | 브라우저 저장소 |
 | `core/api.js` | 화면에서 부르는 게임 기능 |
 | `sw.js` | 오프라인 실행과 엔진용 격리 환경 |

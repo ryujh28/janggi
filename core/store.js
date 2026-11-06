@@ -26,6 +26,11 @@ export class Store {
     store.profile = (await store.get("profile")) || {};
     const defaults = { rank: START_RANK, ranked_games: 0, ladder: [], stats: {}, options: {}, solved: {} };
     for (const [k, v] of Object.entries(defaults)) if (store.profile[k] === undefined) store.profile[k] = v;
+    for (const [kind, value] of Object.entries(store.profile.solved)) {
+      if (typeof value === "number") {  // 예전에는 푼 개수만 저장했다
+        store.profile.solved[kind] = Array.from({ length: value }, (_, i) => i + 1);
+      }
+    }
     store.current = (await store.get("current")) || null;
     store.deck = (await store.get("mistakes")) || [];
     store.index = (await store.get("game-index")) || [];

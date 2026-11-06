@@ -136,7 +136,7 @@ export function material(board, side) {
   return total;
 }
 
-function isBetweenScreen(board, cannon, screen, target) {
+export function isBetweenScreen(board, cannon, screen, target) {
   const [rc, cc] = cell(cannon), [rt, ct] = cell(target);
   if (rc !== rt && cc !== ct) return false;
   const cells = [];
@@ -150,7 +150,7 @@ function isBetweenScreen(board, cannon, screen, target) {
   return filled.length === 1 && filled[0][0] === sr && filled[0][1] === sc;
 }
 
-function narrate(board, move, viewer, first = false) {
+export function narrate(board, move, viewer, first = false) {
   const [a, b] = splitMove(move);
   const piece = at(board, a);
   const who = owner(piece) === viewer ? "내" : "상대";
@@ -166,7 +166,7 @@ function narrate(board, move, viewer, first = false) {
   return `상대 ${name}${josa(name, "이/가")} ${screenDirection(move, viewer)} 움직입니다.`;
 }
 
-function walk(fen, line, viewer) {
+export function walk(fen, line, viewer) {
   const game = new Game(fen, []);
   const steps = [];
   line.forEach((move, index) => {
@@ -191,7 +191,7 @@ function walk(fen, line, viewer) {
   return steps;
 }
 
-function lineSummary(start, steps, side) {
+export function lineSummary(start, steps, side) {
   if (!steps.length) return null;
   const delta = material(steps[steps.length - 1].board, side) - material(start, side);
   if (delta < 0) return `이 수순이 끝나면 말 점수로 ${-delta}점 손해입니다.`;

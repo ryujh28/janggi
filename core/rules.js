@@ -19,6 +19,13 @@ export async function loadRules(base = "vendor/") {
 
 export const opponent = (side) => (side === CHO ? HAN : CHO);
 
+// 판은 그대로 두고 둘 차례만 바꾼다
+export function flipTurn(fen) {
+  const parts = fen.split(" ");
+  parts[1] = parts[1] === "w" ? "b" : "w";
+  return parts.join(" ");
+}
+
 export function splitMove(move) {
   const m = /^([a-i])(\d{1,2})([a-i])(\d{1,2})$/.exec(move);
   if (!m) throw new Error(`잘못된 수: ${move}`);

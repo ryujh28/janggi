@@ -95,6 +95,8 @@ body {
   overflow-y: auto;
 }
 
+.panel > * { flex: none; }
+
 h1, h2, h3, p { margin: 0; }
 
 h1 {
@@ -199,6 +201,11 @@ button:disabled { opacity: .4; cursor: default; }
 .outcome-win { color: #9fd8bf; font-weight: 700; }
 .outcome-loss { color: #f2b6a6; font-weight: 700; }
 
+.badge { pointer-events: none; }
+.badge rect { stroke: var(--paper); stroke-width: 1.5; }
+.badge.good rect { fill: var(--cho); }
+.badge.bad rect { fill: var(--han); }
+.badge text { fill: #fff; font: 700 18px var(--sans); text-anchor: middle; dominant-baseline: central; }
 .arrow { pointer-events: none; opacity: .85; }
 .arrow line { stroke-width: 8; stroke-linecap: round; }
 .arrow.theirs line { stroke: var(--han); }
@@ -218,6 +225,7 @@ button:disabled { opacity: .4; cursor: default; }
 .slider input { flex: 1; accent-color: var(--gold); }
 
 .study { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+#to-shots { grid-column: 1 / -1; }
 
 .toggle { justify-self: start; padding: 4px 8px; font-size: 13px; color: var(--paper-dim); }
 .toggle[aria-pressed="true"] { color: var(--paper); border-color: var(--han); }
@@ -242,12 +250,18 @@ button:disabled { opacity: .4; cursor: default; }
 .reasons { display: flex; flex-direction: column; gap: 4px; }
 .reason { text-align: left; padding: 6px 8px; line-height: 1.45; border-color: transparent; background: rgba(239, 230, 210, .06); }
 .reason[aria-pressed="true"] { border-color: var(--gold); }
+.reason b { color: var(--gold); }
+.subhead { margin: 4px 0 0; font-weight: 700; }
+.branches { display: flex; flex-direction: column; gap: 4px; }
+.branch { display: flex; justify-content: space-between; gap: 10px; text-align: left; padding: 6px 8px; line-height: 1.4; }
+.branch span:last-child { flex: none; color: var(--paper-dim); }
 .narration { min-height: 44px; }
 .aim { font: 700 18px/1.35 var(--serif); color: var(--gold); }
 
 .two-buttons { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
 .stepper { display: grid; grid-template-columns: 64px 1fr 64px; gap: 6px; align-items: center; text-align: center; }
 .stepper button { white-space: nowrap; padding: 6px 4px; }
+.stepper.wide { grid-template-columns: 96px 1fr 96px; }
 
 .bars { display: flex; flex-direction: column; gap: 5px; }
 .bar-row { display: grid; grid-template-columns: 96px 1fr 22px; gap: 8px; align-items: center; font-size: 13px; }

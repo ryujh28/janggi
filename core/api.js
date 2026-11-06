@@ -1,6 +1,6 @@
 // 화면에서 호출하는 게임 기능. 맥 버전 janggi/api.py와 메서드 이름과 돌려주는 값이 같다.
 import { Engine, EngineError, mateIn } from "./engine.js";
-import { REVIEW_VERSION, analyze, frame, judge, legalMap } from "./review.js";
+import { REVIEW_VERSION, analyze, ask, explain, frame, judge, legalMap } from "./review.js";
 import { CHO, HAN, SETUPS, Game, opponent, startFen } from "./rules.js";
 import { PLACEMENT_GAMES, Store } from "./store.js";
 
@@ -51,7 +51,7 @@ export class Api {
     const saved = this.store.current;
     const puzzles = {};
     for (const [k, v] of Object.entries(this.puzzles)) {
-      puzzles[k] = { total: v.length, solved: Math.min(p.solved[k] || 0, v.length) };
+      puzzles[k] = { total: v.length, solved: (p.solved[k] || []).length };
     }
     return {
       levels: this.levels.map((l, index) => ({ index, name: l.name, group: l.group })),
@@ -216,6 +216,23 @@ export class Api {
     return this.withEngine((engine) => judge(engine, moment.fen, move, side));
   }
 
+  async review_legal(ply) {
+    const { fen0, moves, side } = this.reviewJob.result;
+    const position = new Game(fen0, moves.slice(0, Number(ply)));
+    return { legal: position.turn === side && position.status() === null ? legalMap(position) : {} };
+  }
+
+  async review_ask(ply, move) {
+    const { fen0, moves, side } = this.reviewJob.result;
+    const fen = new Game(fen0, moves.slice(0, Number(ply))).fen();
+    return this.withEngine((engine) => ask(engine, fen, move, side));
+  }
+
+  async review_explain(ply) {
+    const { fen0, moves, side } = this.reviewJob.result;
+    return this.withEngine((engine) => explain(engine, fen0, moves, Number(ply), side));
+  }
+
   // 문제
   async puzzle_next(kind) {
     if (kind === "mistake") {
@@ -223,16 +240,29 @@ export class Api {
       if (!due.length) return { empty: true };
       const item = due[0];
       this.puzzle = { kind, item, game: new Game(item.fen), side: item.side, tries: 0, left: due.length };
-    } else {
-      const items = this.puzzles[kind] || [];
-      const index = this.store.profile.solved[kind] || 0;
-      if (index >= items.length) return { empty: true };
-      const item = items[index];
-      this.puzzle = {
-        kind, item, game: new Game(item.fen), side: item.side, remaining: item.n, tries: 0,
-        number: index + 1, total: items.length,
-      };
+      return this.puzzleState();
     }
+    const items = this.puzzles[kind] || [];
+    const done = this.store.profile.solved[kind] || [];
+    for (let number = 1; number <= items.length; number++) {
+      if (!done.includes(number)) return this.openPuzzle(kind, number);
+    }
+    return { empty: true };
+  }
+
+  // 번호로 문제를 연다. 지나간 문제로 돌아가거나 건너뛸 때 쓴다.
+  async puzzle_go(kind, number) {
+    const total = this.puzzles[kind].length;
+    return this.openPuzzle(kind, Math.max(1, Math.min(Number(number), total)));
+  }
+
+  openPuzzle(kind, number) {
+    const items = this.puzzles[kind];
+    const item = items[number - 1];
+    this.puzzle = {
+      kind, item, game: new Game(item.fen), side: item.side, remaining: item.n, tries: 0,
+      number, total: items.length,
+    };
     return this.puzzleState();
   }
 
@@ -241,7 +271,9 @@ export class Api {
     const g = p.game;
     return {
       ...frame(g), kind: p.kind, side: p.side, legal: legalMap(g), n: p.item.n ?? null, text: p.item.text ?? null,
+      motif: p.item.motif ?? null,
       tries: p.tries, number: p.number ?? null, total: p.total ?? null, left: p.left ?? null,
+      done: (this.store.profile.solved[p.kind] || []).includes(p.number),
       check: g.inCheck(), ...extra,
     };
   }
@@ -252,10 +284,15 @@ export class Api {
     const g = p.game;
     if (!g.legal().includes(move)) return this.puzzleState({ result: "illegal" });
     g.moves.push(move);
+    if (p.item.best) {  // 필승수는 깊게 읽어 확인한 답이 있어 엔진을 부르지 않는다
+      const correct = move === p.item.best;
+      if (correct) await this.markSolved(p.kind, p.number);
+      return this.puzzleState({ result: correct ? "solved" : "wrong" });
+    }
     const status = g.status();
     if (status) {
       const solved = status.winner === p.side;
-      if (solved) await this.markSolved(p.kind);
+      if (solved) await this.markSolved(p.kind, p.number);
       return this.puzzleState({ result: solved ? "solved" : "wrong" });
     }
     const { score, best } = await this.withEngine((engine) => engine.evaluate(g, PUZZLE_NODES));
@@ -277,10 +314,13 @@ export class Api {
     return this.puzzleState({ result: correct ? "solved" : "wrong", best: verdict.best });
   }
 
-  async markSolved(kind) {
+  async markSolved(kind, number) {
     const { solved } = this.store.profile;
-    solved[kind] = (solved[kind] || 0) + 1;
-    await this.store.saveProfile();
+    solved[kind] = solved[kind] || [];
+    if (!solved[kind].includes(number)) {
+      solved[kind].push(number);
+      await this.store.saveProfile();
+    }
   }
 
   async puzzle_retry() {
@@ -301,7 +341,7 @@ export class Api {
       g.moves.push(move);
       frames.push(frame(g));
     }
-    return { frames };
+    return { frames, notes: item.notes ?? null };
   }
 
   // 내부
