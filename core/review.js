@@ -1,9 +1,10 @@
 // 끝난 대국을 엔진으로 분석해 복기 자료를 만든다. 맥 버전 janggi/review.py를 옮긴 것이다.
 import { at, josa, lesson, material, pieceName } from "./commentary.js";
 import { mateIn } from "./engine.js";
+import { PROBE_NODES, describe, probe } from "./intent.js";
 import { CHO, Game, PIECE_VALUE, isPass, splitMove } from "./rules.js";
 
-export const REVIEW_VERSION = 3;
+export const REVIEW_VERSION = 4;
 const ANALYSIS_NODES = 10000;  // 휴대폰에 맞춰 맥 버전의 절반으로 읽는다
 const EXTEND_NODES = 4000;
 const MOMENTS = 3;
@@ -45,13 +46,25 @@ function applyTo(board, move) {
   return out;
 }
 
-export function classify(board, played, best, line, before, after) {
+function endsInMate(fen, line) {
+  const game = new Game(fen, []);
+  for (const move of line) {
+    if (game.status() !== null || !game.legal().includes(move)) break;
+    game.moves.push(move);
+  }
+  const status = game.status();
+  return status !== null && status.reason === "checkmate";
+}
+
+export function classify(board, played, best, line, before, after, fen, bestLine) {
   const mateBefore = mateIn(before), mateAfter = mateIn(after);
   if (mateBefore && mateBefore > 0 && !(mateAfter && mateAfter > 0)) {
-    return ["missed_mate", `${mateBefore}수 안에 외통으로 끝낼 수 있었습니다.`];
+    if (endsInMate(fen, bestLine)) return ["missed_mate", `${mateBefore}수 안에 외통으로 끝낼 수 있었습니다.`];
+    return ["missed_win", `${mateBefore}수 안에 점수 판정으로 이길 수 있었습니다.`];
   }
   if (mateAfter && mateAfter < 0 && !(mateBefore && mateBefore < 0)) {
-    return ["allowed_mate", `이 수 뒤에 ${-mateAfter}수 안에 외통을 당합니다.`];
+    if (endsInMate(fen, line)) return ["allowed_mate", `이 수 뒤에 ${-mateAfter}수 안에 외통을 당합니다.`];
+    return ["allowed_loss", `이 수 뒤에 ${-mateAfter}수 안에 점수 판정으로 집니다.`];
   }
   const afterBoard = applyTo(board, played);
   const reply = line.length > 1 ? line[1] : null;
@@ -140,21 +153,27 @@ export async function analyze(game, engine, progress) {
   candidates.sort((a, b) => b.drop - a.drop);
 
   const moments = [];
-  for (const { drop, ply, loss } of candidates.slice(0, MOMENTS)) {
-    const before = points[ply], after = points[ply + 1];
-    const played = moves[ply], best = before.best;
+  for (const { drop, ply, loss } of candidates) {
+    if (moments.length === MOMENTS) break;
+    const after = points[ply + 1];
+    const played = moves[ply];
     const position = new Game(fen0, moves.slice(0, ply));
     const fen = position.fen();
-    const bestPv = await extendLine(engine, fen, before.pv);
+    // 고른 실수는 더 깊게 다시 읽는다. 깊게 봐도 내 수가 최선이면 실수가 아니다.
+    const deep = await engine.evaluate(position, PROBE_NODES);
+    const best = deep.best;
+    if (best === played) continue;
+    const bestPv = await extendLine(engine, fen, deep.pv);
     const playedPv = await extendLine(engine, fen, [played, ...after.pv]);
     const board = frames[ply].board;
-    let [kind, text] = classify(board, played, best, playedPv, before.score, after.score);
+    let [kind, text] = classify(board, played, best, playedPv, deep.score, after.score, fen, bestPv);
     if (kind === "positional") text = explainPositional(board, fen, bestPv, playedPv, side);
+    const result = lesson(fen, side, played, best, kind, playedPv.slice(1), bestPv);
+    result.intent = describe(await probe(engine, fen, best, side));
     moments.push({
       ply, number: Math.floor(ply / 2) + 1, label: labelOf(drop), kind, text, played, best,
-      before: Math.round(winRate(before.score) * 100), after: Math.round(winRate(after.score) * 100),
-      loss, fen, legal: legalMap(position),
-      lesson: lesson(fen, side, played, best, kind, playedPv.slice(1), bestPv),
+      before: Math.round(winRate(deep.score) * 100), after: Math.round(winRate(after.score) * 100),
+      loss, fen, legal: legalMap(position), lesson: result,
     });
   }
   moments.sort((a, b) => a.ply - b.ply);

@@ -205,6 +205,8 @@ button:disabled { opacity: .4; cursor: default; }
 .arrow.theirs polygon { fill: var(--han); }
 .arrow.mine line { stroke: #1f5fa8; }
 .arrow.mine polygon { fill: #1f5fa8; }
+.arrow.option line { stroke: #8a6d1d; stroke-dasharray: 2 14; }
+.arrow.option polygon { fill: #8a6d1d; }
 
 .mark-threat { fill: none; stroke: var(--han); stroke-width: 3; stroke-dasharray: 6 4; pointer-events: none; }
 
@@ -241,6 +243,7 @@ button:disabled { opacity: .4; cursor: default; }
 .reason { text-align: left; padding: 6px 8px; line-height: 1.45; border-color: transparent; background: rgba(239, 230, 210, .06); }
 .reason[aria-pressed="true"] { border-color: var(--gold); }
 .narration { min-height: 44px; }
+.aim { font: 700 18px/1.35 var(--serif); color: var(--gold); }
 
 .two-buttons { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
 .stepper { display: grid; grid-template-columns: 64px 1fr 64px; gap: 6px; align-items: center; text-align: center; }

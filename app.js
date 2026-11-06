@@ -337,7 +337,7 @@ function renderSettings() {
 // 전적 ------------------------------------------------------------------
 const MISTAKE_NAMES = {
   hung_piece: "공짜 말 내줌", missed_capture: "잡을 말 놓침", missed_mate: "외통 놓침",
-  allowed_mate: "외통 허용", positional: "형세 악화",
+  allowed_mate: "외통 허용", positional: "형세 악화", missed_win: "점수승 놓침", allowed_loss: "점수패 허용",
 };
 
 function sparkline(values) {

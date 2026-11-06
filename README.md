@@ -35,7 +35,7 @@ git push -u origin main
 | `index.html`, `style.css`, `board.js`, `sound.js`, `app.js`, `study.js` | 화면 |
 | `core/rules.js` | 규칙 판정 연결 |
 | `core/engine.js` | 엔진 연결, 급수별 수 선택 |
-| `core/review.js`, `core/commentary.js` | 복기 분석과 해설 |
+| `core/review.js`, `core/commentary.js`, `core/intent.js` | 복기 분석, 해설, 수의 의도 |
 | `core/store.js` | 브라우저 저장소 |
 | `core/api.js` | 화면에서 부르는 게임 기능 |
 | `sw.js` | 오프라인 실행과 엔진용 격리 환경 |

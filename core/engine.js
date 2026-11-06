@@ -135,6 +135,14 @@ export class Engine {
     return { score: line.score, best, pv: line.pv };
   }
 
+  async topMoves(game, nodes, count) {
+    this.set("Skill Level", 20);
+    this.set("MultiPV", count);
+    await this.ready();
+    const { lines } = await this.search(game, `go nodes ${nodes}`);
+    return [...lines.entries()].sort((a, b) => a[0] - b[0]).map(([, l]) => ({ move: l.pv[0], score: l.score }));
+  }
+
   async search(game, go) {
     const moves = game.moves.length ? ` moves ${game.moves.join(" ")}` : "";
     this.send(`position fen ${game.fen0}${moves}`);

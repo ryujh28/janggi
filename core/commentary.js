@@ -9,6 +9,8 @@ const HABITS = {
   missed_mate: "장군을 부를 수 있을 때는 상대 궁이 피할 칸을 먼저 세어 보세요.",
   allowed_mate: "수를 두기 전에 내 궁이 피할 칸이 남아 있는지, 상대가 장군을 부를 수 있는지 확인하세요.",
   positional: "당장 잡히는 말이 없어도 내 말이 움직일 길이 막히지 않는지 살펴보세요.",
+  missed_win: "점수가 앞설 때는 한수쉼이나 빅장으로 대국을 끝낼 수 있는지 확인하세요.",
+  allowed_loss: "점수가 뒤질 때는 상대가 한수쉼이나 빅장으로 대국을 끝낼 수 있는지 확인하세요.",
 };
 
 export function josa(word, pair) {
@@ -22,8 +24,8 @@ export const cell = (sq) => [10 - Number(sq.slice(1)), sq.charCodeAt(0) - 97];
 const squareOf = (r, c) => "abcdefghi"[c] + (10 - r);
 export const at = (board, sq) => { const [r, c] = cell(sq); return board[r][c]; };
 const isUpper = (p) => p === p.toUpperCase();
-const owner = (p) => (isUpper(p) ? CHO : HAN);
-const value = (p) => PIECE_VALUE[p.toLowerCase()] || 0;
+export const owner = (p) => (isUpper(p) ? CHO : HAN);
+export const value = (p) => PIECE_VALUE[p.toLowerCase()] || 0;
 
 export function applyMove(board, move) {
   const [a, b] = splitMove(move);
@@ -36,7 +38,7 @@ export function applyMove(board, move) {
   return out;
 }
 
-function boardFen(board, side) {
+export function boardFen(board, side) {
   const rows = board.map((row) => {
     let text = "", empty = 0;
     for (const p of row) {
@@ -115,7 +117,11 @@ export function direction(move, viewer) {
   return `${sideWord} ${forward > 0 ? "앞으로" : "뒤로"}`;
 }
 
-function arrow(move, kind) {
+export function screenDirection(move, viewer) {
+  return direction(move, viewer).replace("앞으로", "위로").replace("뒤로", "아래로");
+}
+
+export function arrow(move, kind) {
   const [a, b] = splitMove(move);
   return { from: a, to: b, kind };
 }
@@ -157,7 +163,7 @@ function narrate(board, move, viewer, first = false) {
   }
   if (first && who === "내") return `내가 ${name}${josa(name, "을/를")} ${direction(move, viewer)} 옮겼습니다.`;
   if (who === "내") return `내 ${name}${josa(name, "을/를")} ${direction(move, viewer)} 옮깁니다.`;
-  return `상대 ${name}${josa(name, "이/가")} ${direction(move, viewer)} 움직입니다.`;
+  return `상대 ${name}${josa(name, "이/가")} ${screenDirection(move, viewer)} 움직입니다.`;
 }
 
 function walk(fen, line, viewer) {
@@ -367,7 +373,9 @@ function firstLoss(start, steps, side) {
 function checkChances(board, side) {
   const fen = boardFen(board, side);
   try {
-    return legalMovesOf(fen).filter((m) => givesCheck(fen, [m])).length;
+    // 차례를 바꾼 국면이라 궁을 잡는 수가 나올 수 있다. 궁이 없는 판은 규칙 코드가 처리하지 못한다.
+    const moves = legalMovesOf(fen).filter((m) => at(board, splitMove(m)[1]).toLowerCase() !== "k");
+    return moves.filter((m) => givesCheck(fen, [m])).length;
   } catch {
     return 0;
   }

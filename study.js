@@ -86,12 +86,19 @@ function showLineStep() {
   renderReview();
 }
 
+// 엔진 수의 의도. 노림수를 밝힌 항목과 겹치는 일반 설명은 뺀다.
+function bestReasons(m) {
+  const { intent, better } = m.lesson;
+  const aimed = intent.points.some((p) => p.text.startsWith("상대가 가만히"));
+  return [...intent.points, ...better.filter((r) => !(aimed && r.text.startsWith("다음 수에")))];
+}
+
 function focusReason(index) {
   const m = review.data.moments[review.moment];
-  const list = review.line.name === "best" ? m.lesson.better : m.lesson.why;
+  const isBest = review.line.name === "best";
+  const reason = (isBest ? bestReasons(m) : m.lesson.why)[index];
   review.focus = index;
-  const reason = list[index];
-  const base = review.line.name === "best" ? review.data.frames[m.ply].board : m.lesson.after_played;
+  const base = reason.board || (isBest ? review.data.frames[m.ply].board : m.lesson.after_played);
   board.render({ board: base, side: review.data.side, arrows: reason.arrows, interactive: false });
   renderReview();
 }
@@ -138,8 +145,9 @@ function coachBlock() {
   const summary = isBest ? lesson.best_summary : lesson.played_summary;
   const atEnd = review.step >= total - 1;
   return `<div class="coach">${head}
-    <p>${isBest ? "엔진이 고른 수입니다." : m.text}</p>
-    ${reasonList(isBest ? lesson.better : lesson.why)}
+    ${isBest ? `<p class="aim">${lesson.intent.headline}</p>
+      <p class="quiet">엔진에게 심리는 없어서, 상황을 바꿔 다시 읽게 한 결과로 의도를 짚었습니다.</p>` : `<p>${m.text}</p>`}
+    ${reasonList(isBest ? bestReasons(m) : lesson.why)}
     <div class="stepper">
       <button id="prev" ${review.step <= 0 ? "disabled" : ""}>이전</button>
       <span>${review.step + 1} / ${total}</span>
