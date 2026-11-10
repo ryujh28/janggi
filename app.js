@@ -14,7 +14,7 @@ const SIDE_NAMES = { cho: "초", han: "한" };
 const REASONS = {
   checkmate: "외통", stalemate: "둘 수 있는 수가 없음", bikjang: "빅장 점수 판정",
   double_pass: "양쪽 한수쉼 점수 판정", repetition: "같은 형세 반복", no_progress: "50수 규칙 점수 판정",
-  resign: "기권",
+  resign: "기권", ai_resign: "상대 기권 (형세가 크게 기울어 AI가 포기)",
 };
 let setup = { level: null, side: "cho", setup: "masang-sangma", aiSetup: "random", picking: false };
 let home = null;

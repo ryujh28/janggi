@@ -8,6 +8,12 @@ import { PLACEMENT_GAMES, Store } from "./store.js";
 const PUZZLE_NODES = 20000;
 const pick = (list) => list[Math.floor(Math.random() * list.length)];
 
+// AI 기권 기준. 맥 버전 janggi/api.py와 같다. 끝까지 둔 자가 대국 2,630판에서 둘 차례 평가가 -1500 이하인
+// 채로 두 번 연속 자기 차례를 맞은 쪽이 역전한 비율은 급수대에 따라 0~1.9%였다.
+const RESIGN_SCORE = 1500;
+const RESIGN_TURNS = 2;
+const RESIGN_NODES = 4000;
+
 export class Api {
   static async create() {
     const api = new Api();
@@ -89,7 +95,7 @@ export class Api {
     if (!SETUPS[aiSetup]) aiSetup = pick(names);
     const [cho, han] = side === CHO ? [setup, aiSetup] : [aiSetup, setup];
     this.game = new Game(startFen(cho, han));
-    this.meta = { level: index, side, undos: 0 };
+    this.meta = { level: index, side, undos: 0, hopeless: 0 };
     this.result = null;
     this.engineError = null;
     await this.autosave();
@@ -105,7 +111,7 @@ export class Api {
     const saved = this.store.current;
     if (!saved) return { error: "이어서 둘 대국이 없습니다" };
     this.game = new Game(saved.fen0, saved.moves);
-    this.meta = { level: saved.level, side: saved.side, undos: saved.undos };
+    this.meta = { level: saved.level, side: saved.side, undos: saved.undos, hopeless: saved.hopeless ?? 0 };
     this.result = null;
     this.engineError = null;
     return this.state();
@@ -151,7 +157,17 @@ export class Api {
     this.engineError = null;
     try {
       const play = this.levels[this.meta.level].play;
-      const move = await this.withEngine((engine) => engine.choose(g, play));
+      const move = await this.withEngine(async (engine) => {
+        const { score } = await engine.evaluate(g, RESIGN_NODES);
+        // 전력으로 읽은 결과가 해시에 남으면 약한 급수가 그만큼 세지므로 비운다
+        await engine.newGame();
+        this.meta.hopeless = score <= -RESIGN_SCORE ? (this.meta.hopeless ?? 0) + 1 : 0;
+        return this.meta.hopeless >= RESIGN_TURNS ? null : engine.choose(g, play);
+      });
+      if (move === null) {
+        await this.finish({ winner: this.meta.side, reason: "ai_resign" });
+        return this.state();
+      }
       if (!g.legal().includes(move)) throw new EngineError(`엔진이 둘 수 없는 수를 골랐습니다: ${move}`);
       g.moves.push(move);
     } catch (error) {
@@ -166,6 +182,7 @@ export class Api {
     if (g && !this.result && g.turn === this.meta.side && g.moves.length >= 2) {
       g.moves.splice(-2);
       this.meta.undos += 1;
+      this.meta.hopeless = 0;
       await this.autosave();
     }
     return this.state();
