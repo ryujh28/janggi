@@ -104,6 +104,7 @@ function renderHome() {
     </div>
     <div class="field"><h2>공부</h2>
       <div class="study">
+        <button id="to-opening">초반 공부</button>
         <button id="to-shots">필승수 공부</button>
         <button id="to-mate">외통 문제</button>
         <button id="to-mistakes">내 실수 문제 ${home.mistakes_due}</button>
@@ -136,6 +137,7 @@ function renderHome() {
   on("to-records", showRecords);
   on("to-settings", showSettings);
   on("resume", resumeGame);
+  on("to-opening", showOpening);
   on("to-shots", () => showPuzzle("shot-wonang"));
   on("to-mate", () => showPuzzle("mate1"));
   on("to-mistakes", () => showPuzzle("mistake"));

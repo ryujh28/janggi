@@ -2,6 +2,7 @@
 import { Engine, EngineError, mateIn } from "./engine.js";
 import { REVIEW_VERSION, analyze, ask, explain, frame, judge, legalMap } from "./review.js";
 import { CHO, HAN, SETUPS, Game, opponent, startFen } from "./rules.js";
+import { describe } from "./intent.js";
 import { PLACEMENT_GAMES, Store } from "./store.js";
 
 const PUZZLE_NODES = 20000;
@@ -234,6 +235,46 @@ export class Api {
   }
 
   // 문제
+  // 초반 공부. 자료가 커서 처음 열 때 읽는다.
+  async opening(cho, han, side) {
+    this.openings ??= await (await fetch("data/openings.json")).json();
+    const data = this.openings[`${cho}/${han}`];
+    if (!data) return { missing: true };
+    this.openingState = { data, side };
+    const { fen0, moves } = data;
+    const frames = [];
+    for (let i = 0; i <= moves.length; i++) frames.push(frame(new Game(fen0, moves.slice(0, i))));
+    const plies = data.plies.map((p, i) => {
+      const mover = frames[i].turn;
+      return {
+        move: moves[i], mine: mover === side, text: p.text[side], tag: p.tag,
+        score: mover === side ? p.score : -p.score,
+        alts: p.alts.map((a) => ({ move: a.move, diff: a.diff, text: a.text[side] })),
+        traps: p.traps.map((t) => this.trapView(fen0, moves, t, side)),
+      };
+    });
+    return { cho, han, side, kind: data.kind, frames, plies, summary: data.summary[side],
+      shots: (this.puzzles[data.kind] || []).length };
+  }
+
+  trapView(fen0, moves, trap, side) {
+    const fen = new Game(fen0, moves.slice(0, trap.ply)).fen();
+    const played = [trap.move, ...trap.line];
+    return {
+      ply: trap.ply, mine: trap.side === side, move: trap.move, best: trap.best, drop: trap.drop,
+      title: trap.title[side], better: trap.better[side],
+      frames: played.map((_, k) => frame(new Game(fen, played.slice(0, k + 1)))),
+      steps: trap.steps.map((step) => step[side]), summary: trap.summary[side],
+    };
+  }
+
+  // 정석 수순의 ply번째 수가 무엇을 노리는지 설명한다. 엔진은 부르지 않는다.
+  async opening_intent(ply) {
+    const { data, side } = this.openingState;
+    const fen = new Game(data.fen0, data.moves.slice(0, Number(ply))).fen();
+    return describe({ ...data.plies[Number(ply)].probe, fen }, side);
+  }
+
   async puzzle_next(kind) {
     if (kind === "mistake") {
       const due = this.store.dueMistakes();

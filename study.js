@@ -477,3 +477,221 @@ function renderPuzzle() {
   on("a-next", () => { puzzle.step += 1; showAnswerStep(); });
   panel.querySelectorAll("[data-kind]").forEach((b) => b.onclick = () => showPuzzle(b.dataset.kind));
 }
+
+// 초반 공부 --------------------------------------------------------------
+let opening = null;
+const OPENING_TABS = [["line", "정석 수순"], ["traps", "함정"], ["summary", "요약"]];
+
+async function showOpening() {
+  handlers.move = () => {};
+  const mine = setup.setup;
+  opening = {
+    side: setup.side === "han" ? "han" : "cho", mine, theirs: setup.aiSetup === "random" ? mine : setup.aiSetup,
+    tab: "line", ply: 0, data: null, intent: null, focus: null, alt: null, trap: null, step: 0,
+    picking: false, token: 0,
+  };
+  await loadOpening();
+}
+
+async function loadOpening() {
+  const o = opening;
+  const token = ++o.token;
+  const [cho, han] = o.side === "cho" ? [o.mine, o.theirs] : [o.theirs, o.mine];
+  panel.innerHTML = `<div class="status"><strong>초반 분석을 불러오는 중</strong></div>`;
+  const data = await call("opening", cho, han, o.side);
+  if (token !== o.token) return;
+  if (data.missing) {
+    panel.innerHTML = `<p class="notice error">이 상차림 조합은 아직 분석하지 않았습니다.</p><button class="link" id="back">돌아가기</button>`;
+    on("back", showHome);
+    return;
+  }
+  Object.assign(o, { data, trap: null, step: 0 });
+  showOpeningPly(0);
+}
+
+// ply번째 수를 둔 뒤의 판을 보여 주고, 그 수의 의도를 가져온다
+async function showOpeningPly(ply) {
+  const o = opening;
+  Object.assign(o, { ply, focus: null, alt: null, intent: null });
+  drawOpeningFrame(o.data.frames[ply]);
+  renderOpening();
+  if (ply === 0) return;
+  const token = o.token;
+  const intent = await call("opening_intent", ply - 1);
+  if (token !== o.token || o.ply !== ply) return;
+  o.intent = intent;
+  renderOpening();
+}
+
+function drawOpeningFrame(f, extra = {}) {
+  board.render({ board: f.board, last: f.last, turn: f.turn, side: opening.side, interactive: false, ...extra });
+}
+
+function scoreWords(score) {
+  if (Math.abs(score) > 20000) return score > 0 ? "외통을 노리는 형세" : "외통 위기";
+  const size = Math.abs(score);
+  const word = size < 30 ? "거의 같음" : `${size < 80 ? "조금 " : size < 200 ? "" : "크게 "}${score > 0 ? "유리" : "불리"}`;
+  return `${score > 0 ? "+" : ""}${score} (${word})`;
+}
+
+function openingReasons() {
+  return opening.intent ? intentItems(opening.intent) : [];
+}
+
+function openingReasonList(list) {
+  if (!list.length) return "";
+  return `<div class="reasons">${list.map((r, i) => `<button class="reason" data-o-reason="${i}"
+    aria-pressed="${opening.focus === i}">${r.title ? `<b>${r.title}</b> ` : ""}${r.text}</button>`).join("")}</div>`;
+}
+
+function trapButtons(list) {
+  return list.map((t) => `<button class="branch" data-o-trap="${t.key}">
+    <span>${t.ply + 1}번째 수 · ${t.title}</span><span>−${t.drop}</span></button>`).join("");
+}
+
+function allTraps() {
+  return opening.data.plies.flatMap((p, i) => p.traps.map((t, j) => ({ ...t, key: `${i}:${j}` })));
+}
+
+function lineView() {
+  const o = opening, d = o.data, total = d.plies.length;
+  const nav = `<div class="stepper">
+      <button id="o-prev" ${o.ply <= 0 ? "disabled" : ""}>이전</button>
+      <span>${o.ply} / ${total}</span>
+      <button id="o-next" ${o.ply >= total ? "disabled" : ""}>다음</button></div>`;
+  if (o.ply === 0) {
+    return `${nav}<div class="coach"><strong>시작 배치</strong><p>${d.summary[0]}</p>
+      <p class="quiet">다음을 누르면 실력 제한 없는 엔진끼리 둔 정석 수순을 한 수씩 봅니다.
+      수마다 의도, 둘 수 있었던 다른 수, 얕게 보면 좋아 보이는 손해 수를 보여 줍니다.</p></div>`;
+  }
+  const p = d.plies[o.ply - 1];
+  const tag = p.tag === "forced" ? `<span class="tag forced">꼭 이 수</span>`
+    : p.tag === "free" ? `<span class="tag free">취향대로</span>` : "";
+  const intent = o.intent
+    ? `<p class="aim">${o.intent.headline}</p>${openingReasonList(openingReasons())}
+       ${o.intent.depth ? `<p class="quiet">${o.intent.depth}</p>` : ""}`
+    : `<p class="quiet">의도를 정리하는 중입니다.</p>`;
+  const alts = p.alts.map((a, i) => `<button class="branch" data-o-alt="${i}" aria-pressed="${o.alt === i}">
+    <span>${a.text}${i === 0 ? " (정석)" : ""}</span><span>${i === 0 ? "" : a.diff <= 5 ? "비슷함" : `−${a.diff}`}</span></button>`).join("");
+  const traps = trapButtons(p.traps.map((t, j) => ({ ...t, key: `${o.ply - 1}:${j}` })));
+  return `${nav}<div class="coach"><strong>${o.ply}번째 수, ${p.mine ? "내 차례" : "상대 차례"} ${tag}</strong>
+    <p>${p.text}</p><p class="quiet">이 수 뒤 평가, 내 기준 ${scoreWords(p.score)}</p>${intent}
+    <p class="subhead">${p.mine ? "내가" : "상대가"} 둘 수 있었던 다른 수 (평가 차이)</p><div class="branches">${alts}</div>
+    ${traps ? `<p class="subhead">얕게 보면 좋아 보이지만 손해인 수</p><div class="branches">${traps}</div>` : ""}</div>`;
+}
+
+function trapsView() {
+  const o = opening;
+  if (o.trap) return trapDetail();
+  const list = allTraps();
+  const mine = list.filter((t) => t.mine), theirs = list.filter((t) => !t.mine);
+  return `<div class="coach"><strong>얕게 보면 좋아 보이지만 손해인 수</strong>
+    <p class="quiet">정석 수순의 국면마다 3수 앞까지만 읽으면 상위 세 수 안에 들지만, 깊게 읽으면 최선보다 100점 넘게
+    손해인 수입니다. 숫자는 손해 크기입니다.</p>
+    <p class="subhead">내가 빠지기 쉬운 함정 ${mine.length}개</p><div class="branches">${trapButtons(mine)}</div>
+    <p class="subhead">상대가 빠지면 응징할 기회 ${theirs.length}개</p><div class="branches">${trapButtons(theirs)}</div></div>`;
+}
+
+function currentTrap() {
+  const [i, j] = opening.trap.split(":").map(Number);
+  return opening.data.plies[i].traps[j];
+}
+
+function trapDetail() {
+  const o = opening, t = currentTrap(), total = t.frames.length - 1;
+  const text = o.step === 0
+    ? `${t.ply + 1}번째 수에서 ${t.title.endsWith("잡기") ? `${t.title.slice(0, -2)}잡으면` : `${t.title} 두면`} ${t.mine ? `내 평가가 ${t.drop}점 떨어집니다` : `내가 ${t.drop}점 이득을 볼 기회가 생깁니다`}. 더 나은 수는 ${t.better}입니다.`
+    : t.steps[o.step - 1];
+  return `<div class="coach"><strong>${t.mine ? "내 함정" : "상대 함정, 응징 수순"}</strong>
+    <div class="stepper">
+      <button id="t-prev" ${o.step <= 0 ? "disabled" : ""}>이전</button>
+      <span>${o.step} / ${total}</span>
+      <button id="t-next" ${o.step >= total ? "disabled" : ""}>다음</button></div>
+    <p class="narration">${text}</p>
+    ${o.step >= total && t.summary ? `<p class="quiet">${t.summary}</p>` : ""}
+    <div class="two-buttons"><button id="t-line">정석 수순에서 보기</button><button id="t-list">목록으로</button></div></div>`;
+}
+
+function drawTrap() {
+  const o = opening, t = currentTrap();
+  if (o.step === 0) {
+    drawOpeningFrame(o.data.frames[t.ply], { arrows: [arrowOf(t.move, t.mine ? "mine" : "theirs"), arrowOf(t.best, "option")] });
+  } else {
+    drawOpeningFrame(t.frames[o.step]);
+  }
+}
+
+function arrowOf(move, kind) {
+  const [, from, to] = move.match(/^([a-i]\d+)([a-i]\d+)$/);
+  return { from, to, kind };
+}
+
+function summaryView() {
+  const d = opening.data;
+  return `<div class="coach"><strong>이 포진의 요약</strong>
+    ${d.summary.map((t) => `<p>${t}</p>`).join("")}
+    <p class="quiet">평가는 엔진 점수입니다. 차 한 대가 약 900, 포나 마가 약 470, 졸 하나가 약 220입니다.</p></div>
+    ${d.shots ? `<button id="o-shots">이 케이스의 필승수 풀기 (${d.shots}문제)</button>` : ""}`;
+}
+
+function renderOpening() {
+  const o = opening, d = o.data;
+  const caseName = (SHOT_KINDS.find(([k]) => k === d.kind) || [])[1] || "";
+  const pick = o.picking ? `
+    <div class="field"><h2>내 진영</h2><div class="chips">${chip("o-side", "cho", "초", o.side === "cho")}${chip("o-side", "han", "한", o.side === "han")}</div></div>
+    <div class="field"><h2>내 상차림</h2><div class="chips two">${Object.entries(SETUP_NAMES).map(([k, v]) => chip("o-mine", k, v, o.mine === k)).join("")}</div></div>
+    <div class="field"><h2>상대 상차림</h2><div class="chips two">${Object.entries(SETUP_NAMES).map(([k, v]) => chip("o-theirs", k, v, o.theirs === k)).join("")}</div></div>` : "";
+  const body = o.tab === "line" ? lineView() : o.tab === "traps" ? trapsView() : summaryView();
+  panel.innerHTML = `
+    <div class="top-line"><h1>초반 공부</h1><button class="link" id="back">돌아가기</button></div>
+    <div class="top-line"><p>${SIDE_NAMES[o.side]}, ${SETUP_NAMES[o.mine]} 대 ${SETUP_NAMES[o.theirs]}
+      <span class="quiet">${caseName}</span></p>
+      <button class="link" id="o-pick">${o.picking ? "닫기" : "포진 바꾸기"}</button></div>
+    ${pick}
+    <div class="chips">${OPENING_TABS.map(([k, v]) => chip("o-tab", k, v, o.tab === k)).join("")}</div>
+    ${body}`;
+  on("back", () => { o.token += 1; showHome(); });
+  on("o-pick", () => { o.picking = !o.picking; renderOpening(); });
+  for (const [attr, key] of [["oSide", "side"], ["oMine", "mine"], ["oTheirs", "theirs"]]) {
+    panel.querySelectorAll(`[data-${key === "side" ? "o-side" : key === "mine" ? "o-mine" : "o-theirs"}]`).forEach((b) => {
+      b.onclick = () => { o[key] = b.dataset[attr]; o.picking = false; loadOpening(); };
+    });
+  }
+  panel.querySelectorAll("[data-o-tab]").forEach((b) => b.onclick = () => {
+    o.tab = b.dataset.oTab;
+    o.trap = null;
+    if (o.tab === "line") showOpeningPly(o.ply);
+    else { drawOpeningFrame(d.frames[o.ply]); renderOpening(); }
+  });
+  on("o-prev", () => showOpeningPly(o.ply - 1));
+  on("o-next", () => showOpeningPly(o.ply + 1));
+  panel.querySelectorAll("[data-o-reason]").forEach((b) => b.onclick = () => {
+    const reason = openingReasons()[Number(b.dataset.oReason)];
+    o.focus = Number(b.dataset.oReason);
+    o.alt = null;
+    board.render({ board: reason.board, side: o.side, arrows: reason.arrows, badges: reason.badges, interactive: false });
+    renderOpening();
+  });
+  panel.querySelectorAll("[data-o-alt]").forEach((b) => b.onclick = () => {
+    const p = d.plies[o.ply - 1];
+    o.alt = Number(b.dataset.oAlt);
+    o.focus = null;
+    const kind = p.mine ? "mine" : "theirs";
+    const arrows = [arrowOf(p.alts[0].move, kind)];
+    if (o.alt > 0) arrows.push(arrowOf(p.alts[o.alt].move, "option"));
+    drawOpeningFrame(d.frames[o.ply - 1], { arrows });
+    renderOpening();
+  });
+  panel.querySelectorAll("[data-o-trap]").forEach((b) => b.onclick = () => {
+    o.tab = "traps";
+    o.trap = b.dataset.oTrap;
+    o.step = 0;
+    drawTrap();
+    renderOpening();
+  });
+  on("t-prev", () => { o.step -= 1; drawTrap(); renderOpening(); });
+  on("t-next", () => { o.step += 1; drawTrap(); renderOpening(); });
+  on("t-list", () => { o.trap = null; drawOpeningFrame(d.frames[o.ply]); renderOpening(); });
+  on("t-line", () => { const t = currentTrap(); o.tab = "line"; o.trap = null; showOpeningPly(t.ply + 1); });
+  on("o-shots", () => { o.token += 1; showPuzzle(d.kind); });
+}

@@ -1,11 +1,11 @@
 // 오프라인 실행과 교차 출처 격리를 맡는 서비스 워커.
 // 엔진의 스레드 기능은 COOP, COEP 헤더가 필요한데 GitHub Pages는 헤더를 못 넣으므로 여기서 붙인다.
-const VERSION = "janggi-5";
+const VERSION = "janggi-6";
 const FILES = [
   "./", "index.html", "style.css", "fonts.css", "board.js", "sound.js", "study.js", "app.js",
   "core/main.js", "core/api.js", "core/commentary.js", "core/engine.js", "core/intent.js", "core/review.js", "core/rules.js", "core/store.js",
   "vendor/ffish.js", "vendor/ffish.wasm", "vendor/stockfish.js", "vendor/stockfish.wasm", "vendor/stockfish.worker.js",
-  "data/levels.json", "data/puzzles.json", "engine/janggi-9991472750de.nnue",
+  "data/levels.json", "data/puzzles.json", "data/openings.json", "engine/janggi-9991472750de.nnue",
   "manifest.webmanifest", "icons/icon-192.png", "icons/icon-512.png",
 ];
 

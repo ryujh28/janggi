@@ -225,7 +225,10 @@ button:disabled { opacity: .4; cursor: default; }
 .slider input { flex: 1; accent-color: var(--gold); }
 
 .study { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
-#to-shots { grid-column: 1 / -1; }
+.tag { display: inline-block; margin-left: 6px; padding: 1px 6px; border-radius: 4px; font-size: 13px; font-weight: 700; vertical-align: 1px; }
+.tag.forced { background: var(--han); color: #fff; }
+.tag.free { border: 1px solid var(--paper-dim); color: var(--paper-dim); font-weight: 400; }
+.branch[aria-pressed="true"] { border-color: var(--gold); }
 
 .toggle { justify-self: start; padding: 4px 8px; font-size: 13px; color: var(--paper-dim); }
 .toggle[aria-pressed="true"] { color: var(--paper); border-color: var(--han); }
